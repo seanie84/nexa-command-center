@@ -1,0 +1,15 @@
+[
+  {
+    "id": "health-checker",
+    "name": "Health Checker",
+    "type": "monitor",
+    "intervalSeconds": 60,
+    "endpoint": "/health"
+  },
+  {
+    "id": "supervisor",
+    "name": "Supervisor",
+    "type": "orchestrator",
+    "intervalSeconds": 30
+  }
+]
