@@ -205,4 +205,11 @@ function start(app) {
   console.log(`  - Endpoints: /api/orchestrator/status, /api/orchestrator/logs`);
 }
 
-module.exports = { start, actionLog, safeActions };
+function getStatus() {
+  return {
+    agents,
+    recentActions: actionLog.slice(-20)
+  };
+}
+
+module.exports = { start, actionLog, safeActions, getStatus };

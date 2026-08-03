@@ -82,6 +82,21 @@ nodejs_version{version="${process.version}"} 1
 `);
 });
 
+// Orchestrator status endpoint (returns JSON)
+app.get('/api/orchestrator/status', (req, res) => {
+  try {
+    const supervisor = require('./agents/supervisor');
+    if (supervisor && typeof supervisor.getStatus === 'function') {
+      const st = supervisor.getStatus();
+      return res.json({ status: 'running', ...st });
+    }
+    // fallback if module doesn't expose getStatus yet
+    return res.json({ status: 'running', agents: [], recentActions: supervisor && supervisor.actionLog ? supervisor.actionLog.slice(-20) : [] });
+  } catch (e) {
+    return res.status(503).json({ status: 'unavailable', error: e.message });
+  }
+});
+
 // Serve static files with cache control
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '1d' : '0',
