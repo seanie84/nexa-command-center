@@ -1,15 +1,26 @@
 [
   {
-    "id": "health-checker",
-    "name": "Health Checker",
+    "id": "health-monitor",
+    "name": "Health Monitor Agent",
     "type": "monitor",
-    "intervalSeconds": 60,
-    "endpoint": "/health"
+    "description": "Monitors main service health endpoint every 60 seconds",
+    "endpoint": "/health",
+    "intervalSeconds": 60
   },
   {
-    "id": "supervisor",
-    "name": "Supervisor",
+    "id": "orchestrator",
+    "name": "AI Orchestrator",
     "type": "orchestrator",
-    "intervalSeconds": 30
+    "description": "Autonomous agent that monitors all services, detects issues, and triggers repairs. Logs all actions for audit trail.",
+    "endpoint": "/health",
+    "intervalSeconds": 30,
+    "capabilities": [
+      "health_monitoring",
+      "failure_detection",
+      "diagnostics_collection",
+      "admin_escalation",
+      "audit_logging",
+      "auto_repair_coordination"
+    ]
   }
 ]
