@@ -3,17 +3,38 @@
     "id": "health-monitor",
     "name": "Health Monitor Agent",
     "type": "monitor",
-    "description": "Monitors main service health endpoint every 60 seconds",
+    "description": "Monitors the local health endpoint and records availability snapshots.",
     "endpoint": "/health",
-    "intervalSeconds": 60
+    "intervalSeconds": 60,
+    "source": "runtime",
+    "capabilities": [
+      "health_monitoring",
+      "status_tracking"
+    ]
+  },
+  {
+    "id": "subservient-server",
+    "name": "Subservient Server",
+    "type": "server",
+    "description": "Represents the serving runtime that hosts and supports every AI agent in the fleet.",
+    "endpoint": "/health",
+    "intervalSeconds": 20,
+    "source": "server_runtime",
+    "capabilities": [
+      "fleet_hosting",
+      "runtime_support",
+      "service_health",
+      "agent_subservience"
+    ]
   },
   {
     "id": "orchestrator",
     "name": "AI Orchestrator",
     "type": "orchestrator",
-    "description": "Autonomous agent that monitors all services, detects issues, and triggers repairs. Logs all actions for audit trail.",
+    "description": "Coordinates health checks, diagnostics collection, and safe escalations.",
     "endpoint": "/health",
     "intervalSeconds": 30,
+    "source": "runtime",
     "capabilities": [
       "health_monitoring",
       "failure_detection",
@@ -21,6 +42,192 @@
       "admin_escalation",
       "audit_logging",
       "auto_repair_coordination"
+    ]
+  },
+  {
+    "id": "collective-brain",
+    "name": "Collective Brain",
+    "type": "brain",
+    "description": "Builds an authentic rollup of live agent health, audit activity, and service telemetry for all AI agents and the subservient server.",
+    "endpoint": "/health",
+    "intervalSeconds": 45,
+    "source": "authentic_runtime_data",
+    "capabilities": [
+      "fleet_visibility",
+      "authentic_runtime_aggregation",
+      "agent_coverage",
+      "telemetry_synthesis",
+      "server_subservience_mapping",
+      "all_ai_agent_coverage"
+    ]
+  },
+  {
+    "id": "strategic-brain",
+    "name": "Strategic Brain",
+    "type": "brain",
+    "description": "Derives prioritization, risk scoring, and repair strategy from authentic operational telemetry across the AI fleet.",
+    "endpoint": "/health",
+    "intervalSeconds": 50,
+    "source": "derived_operational_intelligence",
+    "capabilities": [
+      "risk_scoring",
+      "failure_prediction",
+      "repair_prioritization",
+      "agent_coordination",
+      "dependency_mapping",
+      "fleet_optimization"
+    ]
+  },
+  {
+    "id": "guardian-brain",
+    "name": "Guardian Brain",
+    "type": "brain",
+    "description": "Acts as the policy and safety gate before autonomous repair or escalation actions are approved.",
+    "endpoint": "/health",
+    "intervalSeconds": 55,
+    "source": "policy_guardrail_intelligence",
+    "capabilities": [
+      "policy_enforcement",
+      "autonomy_guardrails",
+      "repair_approval_gate",
+      "escalation_safety",
+      "compliance_review"
+    ]
+  },
+  {
+    "id": "memory-brain",
+    "name": "Memory Brain",
+    "type": "brain",
+    "description": "Stores incident history, repair outcomes, and recurring patterns so the fleet can improve over time.",
+    "endpoint": "/health",
+    "intervalSeconds": 65,
+    "source": "persistent_incident_memory",
+    "capabilities": [
+      "incident_memory",
+      "repair_outcome_tracking",
+      "pattern_learning",
+      "historical_context",
+      "postmortem_synthesis"
+    ]
+  },
+  {
+    "id": "execution-agent",
+    "name": "Execution Agent",
+    "type": "executor",
+    "description": "Consumes approved actions from the brain pipeline and executes bounded operational steps.",
+    "endpoint": "/health",
+    "intervalSeconds": 35,
+    "source": "approved_execution_pipeline",
+    "capabilities": [
+      "proposal_execution",
+      "bounded_repairs",
+      "verification_handshake",
+      "pipeline_completion"
+    ]
+  },
+  {
+    "id": "verification-brain",
+    "name": "Verification Brain",
+    "type": "brain",
+    "description": "Confirms action outcomes, measures repair success, and triggers rollback review when the target state is not achieved.",
+    "endpoint": "/health",
+    "intervalSeconds": 40,
+    "source": "verification_intelligence",
+    "capabilities": [
+      "success_validation",
+      "metric_confirmation",
+      "rollback_triggering",
+      "post_action_proof"
+    ]
+  },
+  {
+    "id": "dependency-brain",
+    "name": "Dependency Brain",
+    "type": "brain",
+    "description": "Maps service and agent dependencies so the fleet can reason about root cause instead of isolated symptoms.",
+    "endpoint": "/health",
+    "intervalSeconds": 70,
+    "source": "causal_graph_intelligence",
+    "capabilities": [
+      "dependency_graphing",
+      "root_cause_mapping",
+      "impact_radius_analysis",
+      "causal_reasoning"
+    ]
+  },
+  {
+    "id": "prediction-brain",
+    "name": "Prediction Brain",
+    "type": "brain",
+    "description": "Forecasts drift, failure probability, and capacity pressure before incidents become visible failures.",
+    "endpoint": "/health",
+    "intervalSeconds": 75,
+    "source": "predictive_intelligence",
+    "capabilities": [
+      "failure_forecasting",
+      "drift_detection",
+      "capacity_prediction",
+      "trend_analysis"
+    ]
+  },
+  {
+    "id": "simulation-brain",
+    "name": "Simulation Brain",
+    "type": "brain",
+    "description": "Evaluates proposed actions in a sandboxed reasoning layer before the execution agent can act.",
+    "endpoint": "/health",
+    "intervalSeconds": 80,
+    "source": "simulation_intelligence",
+    "capabilities": [
+      "pre_execution_simulation",
+      "blast_radius_estimation",
+      "rollback_costing",
+      "scenario_evaluation"
+    ]
+  },
+  {
+    "id": "governance-brain",
+    "name": "Governance Brain",
+    "type": "brain",
+    "description": "Applies global doctrine, autonomy budgets, and sovereign control rules across the federation.",
+    "endpoint": "/health",
+    "intervalSeconds": 85,
+    "source": "governance_intelligence",
+    "capabilities": [
+      "global_policy_control",
+      "autonomy_budgeting",
+      "escalation_doctrine",
+      "federation_governance"
+    ]
+  },
+  {
+    "id": "identity-brain",
+    "name": "Identity Brain",
+    "type": "brain",
+    "description": "Validates agent trust, scope, and authority before actions can pass through the sovereign pipeline.",
+    "endpoint": "/health",
+    "intervalSeconds": 90,
+    "source": "identity_trust_intelligence",
+    "capabilities": [
+      "agent_identity_verification",
+      "scope_enforcement",
+      "trust_scoring",
+      "authorization_review"
+    ]
+  },
+  {
+    "id": "evolution-brain",
+    "name": "Evolution Brain",
+    "type": "brain",
+    "description": "Tunes thresholds, strategy, and doctrine from historical outcomes to improve the federation continuously.",
+    "endpoint": "/health",
+    "intervalSeconds": 95,
+    "source": "continuous_improvement_intelligence",
+    "capabilities": [
+      "threshold_tuning",
+      "policy_optimization",
+      "strategy_refinement",
+      "self_improvement"
     ]
   }
 ]
