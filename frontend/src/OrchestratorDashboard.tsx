@@ -91,6 +91,8 @@ interface OrchestratorStatus {
       rationale: string;
       requestedAt: string;
       status: string;
+      resolvedAt?: string | null;
+      resolutionNote?: string | null;
     }>;
     executionPipeline?: {
       phase: string;
@@ -142,6 +144,7 @@ export function OrchestratorDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [approvalToken, setApprovalToken] = useState('dev-token');
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -183,6 +186,37 @@ export function OrchestratorDashboard() {
       setActionMessage(`Action queued: ${result.message}`);
     } catch (err) {
       setActionMessage(`Action failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleApprovalDecision = async (approvalId: string, decision: 'approve' | 'deny') => {
+    try {
+      const response = await fetch(`/api/orchestrator/approvals/${approvalId}/${decision}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Token': approvalToken
+        },
+        body: JSON.stringify({
+          note: decision === 'approve'
+            ? 'Approved by operator from the dashboard.'
+            : 'Denied by operator from the dashboard.'
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || `Approval action failed: ${response.status}`);
+      }
+
+      setActionMessage(result.message || `Approval ${decision}d`);
+      const refresh = await fetch('/api/orchestrator/status');
+      if (refresh.ok) {
+        const data = await refresh.json();
+        setOrchestratorStatus(data);
+      }
+    } catch (err) {
+      setActionMessage(`Approval action failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -424,6 +458,17 @@ export function OrchestratorDashboard() {
           {orchestratorStatus.brain?.approvalQueue && (
             <div style={styles.card}>
               <h3>✋ Approval Queue</h3>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.9em', color: '#555' }}>
+                  Admin token
+                  <input
+                    type="password"
+                    value={approvalToken}
+                    onChange={(event) => setApprovalToken(event.target.value)}
+                    style={styles.input}
+                  />
+                </label>
+              </div>
               <div style={styles.logContainer}>
                 {orchestratorStatus.brain.approvalQueue.length === 0 ? (
                   <p style={{ color: '#666' }}>No protected actions are waiting for operator approval</p>
@@ -437,6 +482,25 @@ export function OrchestratorDashboard() {
                         <strong>{entry.action}</strong>
                         <span>{entry.status}</span>
                         <span>{entry.rationale}</span>
+                        {entry.resolutionNote && <span>{entry.resolutionNote}</span>}
+                        {entry.status === 'pending' && (
+                          <div style={styles.inlineActions}>
+                            <button
+                              type="button"
+                              style={styles.approveButton}
+                              onClick={() => handleApprovalDecision(entry.id, 'approve')}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              style={styles.denyButton}
+                              onClick={() => handleApprovalDecision(entry.id, 'deny')}
+                            >
+                              Deny
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -730,5 +794,33 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.95em',
     fontWeight: 'bold',
     transition: 'background-color 0.2s'
+  },
+  input: {
+    padding: '10px 12px',
+    borderRadius: '6px',
+    border: '1px solid #ccc'
+  },
+  inlineActions: {
+    display: 'flex',
+    gap: '8px',
+    marginLeft: 'auto'
+  },
+  approveButton: {
+    padding: '8px 12px',
+    backgroundColor: '#157347',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontWeight: 'bold'
+  },
+  denyButton: {
+    padding: '8px 12px',
+    backgroundColor: '#b42318',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontWeight: 'bold'
   }
 };

@@ -34,6 +34,7 @@ interface OverviewPayload {
       action: string
       status: string
       requestedAt: string
+      resolutionNote?: string | null
     }>
   }
 }
@@ -298,6 +299,7 @@ export default function App() {
                           <div>
                             <strong>{entry.action}</strong>
                             <div style={styles.commandMeta}>{new Date(entry.requestedAt).toLocaleTimeString()}</div>
+                            {entry.resolutionNote ? <div style={styles.commandMeta}>{entry.resolutionNote}</div> : null}
                           </div>
                           <div style={styles.commandFlags}>
                             <span style={styles.commandFlag}>{entry.status}</span>

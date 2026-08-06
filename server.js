@@ -169,6 +169,34 @@ app.get('/api/orchestrator/approvals', requireAdmin, (req, res) => {
   }
 });
 
+app.post('/api/orchestrator/approvals/:approvalId/:decision', requireAdmin, (req, res) => {
+  try {
+    const supervisor = require('./agents/supervisor');
+    if (!supervisor || typeof supervisor.resolveApprovalRequest !== 'function') {
+      return res.status(503).json({ status: 'unavailable' });
+    }
+
+    const { approvalId, decision } = req.params;
+    if (decision !== 'approve' && decision !== 'deny') {
+      return res.status(400).json({ error: 'Decision must be approve or deny' });
+    }
+
+    const resolved = supervisor.resolveApprovalRequest(
+      approvalId,
+      decision === 'approve' ? 'approved' : 'denied',
+      req.body?.note
+    );
+
+    return res.json({
+      success: true,
+      approval: resolved,
+      message: `Approval ${resolved.id} ${resolved.status}`
+    });
+  } catch (e) {
+    return res.status(400).json({ success: false, error: e.message });
+  }
+});
+
 app.get('/api/orchestrator/logs', requireAdmin, (req, res) => {
   try {
     const supervisor = require('./agents/supervisor');
