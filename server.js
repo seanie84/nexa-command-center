@@ -7,6 +7,15 @@ const Sentry = process.env.SENTRY_DSN ? require('@sentry/node') : null;
 const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'dev-token';
+
+function requireAdmin(req, res, next) {
+  const presented = req.headers['x-admin-token'];
+  if (!presented || presented !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return next();
+}
 
 // Initialize Sentry error tracking
 if(Sentry){
@@ -92,6 +101,85 @@ app.get('/api/orchestrator/status', (req, res) => {
     }
     // fallback if module doesn't expose getStatus yet
     return res.json({ status: 'running', agents: [], recentActions: supervisor && supervisor.actionLog ? supervisor.actionLog.slice(-20) : [] });
+  } catch (e) {
+    return res.status(503).json({ status: 'unavailable', error: e.message });
+  }
+});
+
+app.get('/api/orchestrator/overview', (req, res) => {
+  try {
+    const supervisor = require('./agents/supervisor');
+    if (supervisor && typeof supervisor.getStatus === 'function') {
+      const snapshot = supervisor.getStatus();
+      return res.json({
+        status: 'running',
+        timestamp: new Date().toISOString(),
+        summary: {
+          totalAgents: snapshot.brain?.coverage?.totalAgents || 0,
+          healthyAgents: snapshot.brain?.coverage?.healthyAgents || 0,
+          totalAiAgents: snapshot.brain?.coverage?.totalAiAgents || 0,
+          healthyAiAgents: snapshot.brain?.coverage?.healthyAiAgents || 0,
+          riskLevel: snapshot.brain?.riskLevel || 'unknown',
+          phase: snapshot.brain?.executionPipeline?.phase || 'observe',
+          verificationStatus: snapshot.brain?.executionPipeline?.verificationStatus || 'pending'
+        },
+        brain: snapshot.brain || null
+      });
+    }
+    return res.status(503).json({ status: 'unavailable' });
+  } catch (e) {
+    return res.status(503).json({ status: 'unavailable', error: e.message });
+  }
+});
+
+app.get('/api/orchestrator/security', (req, res) => {
+  try {
+    const supervisor = require('./agents/supervisor');
+    if (supervisor && typeof supervisor.getStatus === 'function') {
+      const snapshot = supervisor.getStatus();
+      return res.json({
+        status: 'running',
+        adminTokenConfigured: Boolean(ADMIN_TOKEN),
+        doctrineVersion: snapshot.brain?.governanceState?.doctrineVersion || 'unknown',
+        protectedActions: snapshot.brain?.governanceState?.protectedActions || [],
+        humanApprovalRequired: snapshot.brain?.governanceState?.humanApprovalRequired || [],
+        adapterCatalog: snapshot.brain?.telemetryState?.adapterCatalog || {},
+        rollbackStatus: snapshot.brain?.executionPipeline?.rollback?.status || 'not-required'
+      });
+    }
+    return res.status(503).json({ status: 'unavailable' });
+  } catch (e) {
+    return res.status(503).json({ status: 'unavailable', error: e.message });
+  }
+});
+
+app.get('/api/orchestrator/approvals', requireAdmin, (req, res) => {
+  try {
+    const supervisor = require('./agents/supervisor');
+    if (supervisor && typeof supervisor.getStatus === 'function') {
+      const snapshot = supervisor.getStatus();
+      return res.json({
+        status: 'running',
+        approvals: snapshot.brain?.approvalQueue || []
+      });
+    }
+    return res.status(503).json({ status: 'unavailable' });
+  } catch (e) {
+    return res.status(503).json({ status: 'unavailable', error: e.message });
+  }
+});
+
+app.get('/api/orchestrator/logs', requireAdmin, (req, res) => {
+  try {
+    const supervisor = require('./agents/supervisor');
+    if (supervisor && Array.isArray(supervisor.actionLog)) {
+      const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
+      return res.json({
+        logs: supervisor.actionLog.slice(-limit),
+        total: supervisor.actionLog.length
+      });
+    }
+    return res.status(503).json({ status: 'unavailable' });
   } catch (e) {
     return res.status(503).json({ status: 'unavailable', error: e.message });
   }
