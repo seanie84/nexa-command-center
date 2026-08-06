@@ -256,7 +256,9 @@ function queueApprovalRequest(action, rationale) {
     action,
     rationale,
     requestedAt: new Date().toISOString(),
-    status: 'pending'
+    status: 'pending',
+    resolvedAt: null,
+    resolutionNote: null
   };
   approvalQueue.push(record);
   if (approvalQueue.length > 25) {
@@ -264,6 +266,69 @@ function queueApprovalRequest(action, rationale) {
   }
   persistState();
   return record;
+}
+
+function resolveApprovalRequest(approvalId, decision, note) {
+  const entry = approvalQueue.find((item) => item.id === approvalId);
+  if (!entry) {
+    throw new Error(`Approval request ${approvalId} was not found`);
+  }
+  if (entry.status !== 'pending') {
+    throw new Error(`Approval request ${approvalId} is already ${entry.status}`);
+  }
+
+  const approved = decision === 'approved';
+  entry.status = approved ? 'approved' : 'denied';
+  entry.resolvedAt = new Date().toISOString();
+  entry.resolutionNote = isNonEmptyString(note) ? note.trim() : null;
+
+  if (approved) {
+    updateExecutionPipeline({
+      phase: 'propose',
+      guardianDecision: 'approve',
+      executionStatus: 'proposal-ready',
+      currentProposal: {
+        action: entry.action,
+        priority: 'high',
+        confidence: 1,
+        rationale: entry.rationale
+      }
+    });
+  } else {
+    updateExecutionPipeline({
+      phase: 'observe',
+      guardianDecision: 'deny',
+      executionStatus: 'denied',
+      currentProposal: null,
+      simulationStatus: 'pending',
+      verificationStatus: 'pending',
+      rollback: {
+        status: 'not-required',
+        reason: null,
+        triggeredAt: null
+      }
+    });
+  }
+
+  logAction('APPROVAL_DECISION', null, approved ? 'success' : 'warning', {
+    approvalId: entry.id,
+    action: entry.action,
+    decision: entry.status,
+    note: entry.resolutionNote
+  });
+  rememberIncident({
+    timestamp: new Date().toISOString(),
+    agentId: 'guardian-brain',
+    phase: 'guard',
+    outcome: approved ? 'approval_granted' : 'approval_denied',
+    details: {
+      approvalId: entry.id,
+      action: entry.action,
+      note: entry.resolutionNote
+    }
+  });
+  persistState();
+  return entry;
 }
 
 function loadAgents() {
@@ -859,14 +924,6 @@ function setupMetricsEndpoint(app) {
     });
   });
   
-  app.get('/api/orchestrator/logs', (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit || '50'), 200);
-    res.json({
-      logs: actionLog.slice(-limit),
-      total: actionLog.length
-    });
-  });
-  
   app.post('/api/orchestrator/actions/:action', (req, res) => {
     // Require admin authentication in production
     if(process.env.NODE_ENV === 'production' && !req.headers['x-admin-token']) {
@@ -924,6 +981,35 @@ function setupMetricsEndpoint(app) {
       protected: isProtected,
       timestamp: new Date().toISOString()
     });
+  });
+
+  app.post('/api/orchestrator/approvals/:approvalId/:decision', (req, res) => {
+    if(process.env.NODE_ENV === 'production' && !req.headers['x-admin-token']) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { approvalId, decision } = req.params;
+    if (decision !== 'approve' && decision !== 'deny') {
+      return res.status(400).json({ error: 'Decision must be approve or deny' });
+    }
+
+    try {
+      const resolved = resolveApprovalRequest(
+        String(approvalId || '').trim(),
+        decision === 'approve' ? 'approved' : 'denied',
+        req.body?.note
+      );
+      return res.json({
+        success: true,
+        approval: resolved,
+        message: `Approval ${resolved.id} ${resolved.status}`
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
   });
 }
 
@@ -992,4 +1078,4 @@ function getStatus() {
   };
 }
 
-module.exports = { start, actionLog, safeActions, getStatus };
+module.exports = { start, actionLog, safeActions, getStatus, resolveApprovalRequest };
